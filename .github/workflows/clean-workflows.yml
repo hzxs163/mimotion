@@ -1,0 +1,17 @@
+name: 批量清理工作流记录
+on:
+  workflow_dispatch: # 手动触发（需要时自己点运行）
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # 必须开启这个权限才能删除记录
+    steps:
+      - name: 批量删除工作流记录
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }} # GitHub自动提供的令牌，无需额外配置
+          repository: ${{ github.repository }} # 自动识别当前仓库
+          retain_days: 0 # 保留0天内的记录（即删除所有记录）
+          keep_minimum_runs: 0 # 不保留任何记录（可改成保留最近N条，比如填2则保留最新2条）
