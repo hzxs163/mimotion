@@ -205,7 +205,7 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
     """推送到企业微信"""
     # 判断是否需要微信推送
     if config.push_wechat_webhook_key and config.push_wechat_webhook_key != '' and config.push_wechat_webhook_key != 'NO':
-
+        simple_summary = summary.replace("执行账号总数1，", "")
         content = f'## {summary}'
         if len(exec_results) >= config.push_plus_max:
             content += '\n- 账号数量过多，详细情况请前往github actions中查看'
@@ -213,9 +213,9 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
             for exec_result in exec_results:
                 success = exec_result['success']
                 if success is not None and success is True:
-                    content += f'\n- 账号：{exec_result["user"]}成功：{exec_result["msg"]}'
+                    content += f'\n{exec_result["msg"]}'
                 else:
-                    content += f'\n- 账号：{exec_result["user"]}失败：{exec_result["msg"]}'
+                    content += f'\n{exec_result["msg"]}'
         push_wechat_webhook(config.push_wechat_webhook_key, f"{format_now()} 通知", content)
     else:
         print("未配置 WECHAT_WEBHOOK_KEY 跳过微信推送")
