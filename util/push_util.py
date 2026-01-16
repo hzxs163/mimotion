@@ -207,7 +207,7 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
     if config.push_wechat_webhook_key and config.push_wechat_webhook_key != '' and config.push_wechat_webhook_key != 'NO':
         # ========== 核心修改1：删除 执行账号总数1， 只保留 成功：1，失败：0 ==========
         simple_summary = summary.replace("执行账号总数1，", "")
-        content = f'## {simple_summary}'
+        content = f'{simple_summary}'
         if len(exec_results) >= config.push_plus_max:
             content += '\n- 账号数量过多，详细情况请前往github actions中查看'
         else:
