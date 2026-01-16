@@ -205,8 +205,9 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
     """推送到企业微信"""
     # 判断是否需要微信推送
     if config.push_wechat_webhook_key and config.push_wechat_webhook_key != '' and config.push_wechat_webhook_key != 'NO':
-        # ========== 核心修改1：删除 执行账号总数1， 只保留 成功：1，失败：0 ==========
+        # ✅ 核心1：彻底删掉「执行账号总数1，」这段文字
         simple_summary = summary.replace("执行账号总数1，", "")
+        # ✅ 核心2：直接拼接内容，取消空行 + 取消##标题导致的换行/空行
         content = f'{simple_summary}'
         if len(exec_results) >= config.push_plus_max:
             content += '\n- 账号数量过多，详细情况请前往github actions中查看'
@@ -214,11 +215,10 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
             for exec_result in exec_results:
                 success = exec_result['success']
                 if success is not None and success is True:
-                    # ========== 核心修改2：删除 账号：手机号+成功： 只保留接口返回的步数信息 ==========
                     content += f'\n{exec_result["msg"]}'
                 else:
                     content += f'\n执行失败：{exec_result["msg"]}'
-        # 标题只有纯时间，无任何多余文字
+        # ✅ 核心3：删掉标题里的「 通知 」两个字，标题只留纯时间，彻底无多余文字
         push_wechat_webhook(config.push_wechat_webhook_key, f"{format_now()}", content)
     else:
         print("未配置 WECHAT_WEBHOOK_KEY 跳过微信推送")
