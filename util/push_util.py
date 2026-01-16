@@ -192,11 +192,11 @@ def push_to_push_plus(exec_results, summary, config: PushConfig):
             for exec_result in exec_results:
                 success = exec_result['success']
                 if success is not None and success is True:
-                    html += f'<li><span>账号：{exec_result["user"]}</span>刷步数成功，接口返回：{exec_result["msg"]}</li>'
+                    html += f'<li><span>账号：{exec_result["user"]}</span>成功：{exec_result["msg"]}</li>'
                 else:
-                    html += f'<li><span>账号：{exec_result["user"]}</span>刷步数失败，失败原因：{exec_result["msg"]}</li>'
+                    html += f'<li><span>账号：{exec_result["user"]}</span>失败：{exec_result["msg"]}</li>'
             html += '</ul>'
-        push_plus(config.push_plus_token, f"{format_now()} 刷步数通知", html)
+        push_plus(config.push_plus_token, f"{format_now()} 通知", html)
     else:
         print("未配置 PUSH_PLUS_TOKEN 跳过PUSHPLUS推送")
 
@@ -213,10 +213,10 @@ def push_to_wechat_webhook(exec_results, summary, config: PushConfig):
             for exec_result in exec_results:
                 success = exec_result['success']
                 if success is not None and success is True:
-                    content += f'\n- 账号：{exec_result["user"]}刷步数成功，接口返回：{exec_result["msg"]}'
+                    content += f'\n- 账号：{exec_result["user"]}成功：{exec_result["msg"]}'
                 else:
-                    content += f'\n- 账号：{exec_result["user"]}刷步数失败，失败原因：{exec_result["msg"]}'
-        push_wechat_webhook(config.push_wechat_webhook_key, f"{format_now()} 刷步数通知", content)
+                    content += f'\n- 账号：{exec_result["user"]}失败：{exec_result["msg"]}'
+        push_wechat_webhook(config.push_wechat_webhook_key, f"{format_now()} 通知", content)
     else:
         print("未配置 WECHAT_WEBHOOK_KEY 跳过微信推送")
 
@@ -233,9 +233,9 @@ def push_to_telegram_bot(exec_results, summary, config: PushConfig):
             for exec_result in exec_results:
                 success = exec_result['success']
                 if success is not None and success is True:
-                    html += f'<pre><blockquote>账号：{exec_result["user"]}</blockquote>刷步数成功，接口返回：<b>{exec_result["msg"]}</b></pre>'
+                    html += f'<pre><blockquote>账号：{exec_result["user"]}</blockquote>成功：<b>{exec_result["msg"]}</b></pre>'
                 else:
-                    html += f'<pre><blockquote>账号：{exec_result["user"]}</blockquote>刷步数失败，失败原因：<b>{exec_result["msg"]}</b></pre>'
+                    html += f'<pre><blockquote>账号：{exec_result["user"]}</blockquote>失败：<b>{exec_result["msg"]}</b></pre>'
         push_telegram_bot(config.telegram_bot_token, config.telegram_chat_id, html)
     else:
         print("未配置 TELEGRAM_BOT_TOKEN 或 TELEGRAM_CHAT_ID 跳过telegram推送")
