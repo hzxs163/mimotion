@@ -185,7 +185,7 @@ class MiMotionRunner:
         step = str(random.randint(min_step, max_step))
         self.log_str += f"已设置为随机步数范围({min_step}~{max_step}) 随机值:{step}\n"
         ok, msg = zeppHelper.post_fake_brand_data(step, app_token, self.user_id)
-        return f"幸运数（{step}）[" + msg + "]", ok
+        return f"（{step}）[{msg}]", ok
 
 
 def run_single_account(total, idx, user_mi, passwd_mi):
