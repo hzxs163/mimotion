@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import os
+import requests  # 新增：导入requests库用于虾推啥推送
 
 from util import push_util
 from util import aes_help
@@ -31,6 +32,59 @@ def build_inspect_configs_content_for_telegram(config_param, aes_key_param, pat_
         pat_content = f"<b>PAT:</b>\n<pre>{pat_param}</pre>\n"
     config_content = f"<b>CONFIG:</b>\n<pre>{config_param}</pre>"
     return f"{aes_content}{pat_content}{config_content}"
+
+# 新增：虾推啥推送函数
+def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None):
+    """
+    虾推啥（Bark协议）推送函数
+    :param title: 推送标题
+    :param content: 推送内容
+    :param server: 虾推啥服务器地址
+    :param token: 虾推啥Token（必填）
+    :return: 推送成功返回True，失败返回False
+    """
+    # 校验Token
+    if not token:
+        print("虾推啥推送失败：Token未配置")
+        return False
+    
+    try:
+        # 处理内容中的特殊字符，避免URL解析错误
+        title_encoded = requests.utils.quote(title)
+        # 虾推啥内容长度有限制，做简单截断
+        content_truncated = content[:500] if len(content) > 500 else content
+        content_encoded = requests.utils.quote(content_truncated)
+        url = f"{server}/{token}/{title_encoded}/{content_encoded}"
+        
+        # 发送GET请求
+        response = requests.get(
+            url,
+            timeout=10,
+            headers={"User-Agent": "Mimotion/InspectConfig/1.0"}
+        )
+        
+        # 检查响应状态
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("code") == 200:
+                print("虾推啥推送配置信息成功")
+                return True
+            else:
+                print(f"虾推啥推送配置信息失败：{result.get('message', '未知错误')}")
+                return False
+        else:
+            print(f"虾推啥推送配置信息失败，HTTP状态码: {response.status_code}")
+            return False
+            
+    except requests.exceptions.Timeout:
+        print("虾推啥推送配置信息超时")
+        return False
+    except requests.exceptions.ConnectionError:
+        print("虾推啥推送配置信息连接失败，请检查网络或服务器地址")
+        return False
+    except Exception as e:
+        print(f"虾推啥推送配置信息异常: {str(e)}")
+        return False
 
 
 def display_content_by_aes(inspect_aes_key, config, aes_key, pat):
@@ -93,3 +147,13 @@ if __name__ == "__main__":
     else:
         push_util.push_telegram_bot(telegram_bot_token, telegram_chat_id,
                                     build_inspect_configs_content_for_telegram(config, aes_key, pat))
+
+    # 新增：推送到虾推啥
+    xts_token = os.environ.get("INSPECT_XIATUISHE_TOKEN")
+    if xts_token is None or xts_token == "":
+        print("未配置 INSPECT_XIATUISHE_TOKEN 跳过虾推啥推送")
+    else:
+        # 构建虾推啥推送内容（简化格式，适配虾推啥展示）
+        push_title = "Mimotion配置信息"
+        push_content = f"CONFIG: {config[:200]}...\nPAT: {pat[:50]}...\nAES_KEY: {aes_key[:50]}..." if config else "未配置CONFIG"
+        push_to_xiatuishe(push_title, push_content, token=xts_token)
