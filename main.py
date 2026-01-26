@@ -300,10 +300,10 @@ def execute():
         xts_token = config.get('XIATUISHE_TOKEN')  # 从配置中获取虾推啥Token
         if xts_token:
             # 构建推送内容（适配微信展示格式）
-            push_title = "Mimotion步数更新结果"
+            push_title = "Mimotion项目更新结果"
             push_content = f"{format_now()}\n{summary}\n"
             for idx, res in enumerate(push_results):
-                push_content += f"\n[{idx+1}] 账号：{desensitize_user_name(res['user'])}\n结果：{'成功' if res['success'] else '失败'}\n详情：{res['msg'][:100]}..."
+                push_content += f"结果：{'成功' if res['success'] else '失败'}\n详情：{res['msg'][:100]}..."
             # 执行推送（使用修正后的官方协议）
             push_to_xiatuishe(push_title, push_content, token=xts_token)
         else:
