@@ -33,14 +33,14 @@ def build_inspect_configs_content_for_telegram(config_param, aes_key_param, pat_
     config_content = f"<b>CONFIG:</b>\n<pre>{config_param}</pre>"
     return f"{aes_content}{pat_content}{config_content}"
 
-# 新增：虾推啥推送函数
-def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None):
+# 修正：虾推啥微信推送函数（官方协议）
+def push_to_xiatuishe(title, content, server="https://wx.xtuis.cn", token=None):
     """
-    虾推啥（Bark协议）推送函数
-    :param title: 推送标题
-    :param content: 推送内容
-    :param server: 虾推啥服务器地址
-    :param token: 虾推啥Token（必填）
+    虾推啥微信推送函数（官方协议）
+    :param title: 推送标题（必填）
+    :param content: 推送内容（选填）
+    :param server: 虾推啥服务器地址（官方默认：https://wx.xtuis.cn）
+    :param token: 虾推啥Token（必填，从虾推啥公众号获取）
     :return: 推送成功返回True，失败返回False
     """
     # 校验Token
@@ -49,28 +49,35 @@ def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None
         return False
     
     try:
-        # 处理内容中的特殊字符，避免URL解析错误
-        title_encoded = requests.utils.quote(title)
-        # 虾推啥内容长度有限制，做简单截断
-        content_truncated = content[:500] if len(content) > 500 else content
-        content_encoded = requests.utils.quote(content_truncated)
-        url = f"{server}/{token}/{title_encoded}/{content_encoded}"
+        # 官方标准接口格式：https://wx.xtuis.cn/[Token].send
+        url = f"{server}/{token}.send"
+        # 官方标准参数：text（标题）、desp（内容）
+        params = {
+            "text": title,
+            "desp": content
+        }
         
-        # 发送GET请求
+        # 虾推啥内容长度有限制，做简单截断（适配微信展示）
+        if len(params["desp"]) > 500:
+            params["desp"] = params["desp"][:500] + "..."
+        
+        # 发送GET请求（官方推荐，内容过长可改用POST）
         response = requests.get(
             url,
+            params=params,
             timeout=10,
             headers={"User-Agent": "Mimotion/InspectConfig/1.0"}
         )
         
         # 检查响应状态
         if response.status_code == 200:
-            result = response.json()
-            if result.get("code") == 200:
+            result = response.text.strip()
+            # 官方返回成功标识：success/ok/成功
+            if "success" in result or "ok" in result.lower() or "成功" in result:
                 print("虾推啥推送配置信息成功")
                 return True
             else:
-                print(f"虾推啥推送配置信息失败：{result.get('message', '未知错误')}")
+                print(f"虾推啥推送配置信息失败：{result}")
                 return False
         else:
             print(f"虾推啥推送配置信息失败，HTTP状态码: {response.status_code}")
@@ -153,7 +160,7 @@ if __name__ == "__main__":
     if xts_token is None or xts_token == "":
         print("未配置 INSPECT_XIATUISHE_TOKEN 跳过虾推啥推送")
     else:
-        # 构建虾推啥推送内容（简化格式，适配虾推啥展示）
+        # 构建虾推啥推送内容（简化格式，适配微信展示）
         push_title = "Mimotion配置信息"
         push_content = f"CONFIG: {config[:200]}...\nPAT: {pat[:50]}...\nAES_KEY: {aes_key[:50]}..." if config else "未配置CONFIG"
         push_to_xiatuishe(push_title, push_content, token=xts_token)
