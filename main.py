@@ -300,10 +300,20 @@ def execute():
         xts_token = config.get('XIATUISHE_TOKEN')  # 从配置中获取虾推啥Token
         if xts_token:
             # 构建推送内容（适配微信展示格式）
-            push_title = "Mimotion项目更新结果"
+            step_info = ""
+            if push_results:
+                # 从详情中提取步数（比如“（20000）[操作成功]”中的20000）
+                msg = push_results[0]['msg']
+                step_match = re.search(r'（(\d+)）', msg)  # 匹配“（数字）”格式的步数
+                if step_match:
+                    step_info = step_match.group(1)  # 提取步数数字
+            # 推送标题/告警内容改为步数
+            push_title = f"{step_info}步" if step_info else "Mimotion项目更新结果"
+            # 构建推送内容
             push_content = f"{format_now()}\n\n"
-            for idx, res in enumerate(push_results):
-                push_content += f"结果：{'成功' if res['success'] else '失败'}\n详情：{res['msg'][:100]}...\n\n"
+            for res in push_results:
+                msg_content = res['msg'].replace("步数", "")
+                push_content += f" 结果：{'成功' if res['success'] else '失败'}\n详情：{msg_content[:100]}...\n\n"
             # 去掉最后多余的空行
             push_content = push_content.strip()
             # 执行推送（使用修正后的官方协议）
