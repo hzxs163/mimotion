@@ -308,7 +308,7 @@ def execute():
                 if step_match:
                     step_info = step_match.group(1)  # 提取步数数字
             # 推送标题/告警内容改为步数
-            push_title = f"{step_info}步" if step_info else "Mimotion项目更新结果"
+            push_title = f"{step_info}" if step_info else "Mimotion项目更新结果"
             # 构建推送内容
             push_content = f"{format_now()}\n\n"
             for res in push_results:
