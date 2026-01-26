@@ -10,6 +10,7 @@ import random
 import re
 import time
 import os
+import requests  # 新增：导入requests库用于虾推啥推送
 
 from util.aes_help import encrypt_data, decrypt_data
 import util.zepp_helper as zeppHelper
@@ -81,6 +82,56 @@ def get_error_code(location):
         return None
     return result[0]
 
+# 新增：虾推啥推送函数
+def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None):
+    """
+    虾推啥（Bark协议）推送函数
+    :param title: 推送标题
+    :param content: 推送内容
+    :param server: 虾推啥服务器地址
+    :param token: 虾推啥Token（必填）
+    :return: 推送成功返回True，失败返回False
+    """
+    # 校验Token
+    if not token:
+        print(f"[{format_now()}] 虾推啥推送失败：Token未配置")
+        return False
+    
+    try:
+        # 处理内容中的特殊字符，避免URL解析错误
+        title_encoded = requests.utils.quote(title)
+        content_encoded = requests.utils.quote(content)
+        url = f"{server}/{token}/{title_encoded}/{content_encoded}"
+        
+        # 发送GET请求
+        response = requests.get(
+            url,
+            timeout=10,
+            headers={"User-Agent": "Mimotion/1.0"}
+        )
+        
+        # 检查响应状态
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("code") == 200:
+                print(f"[{format_now()}] 虾推啥推送成功")
+                return True
+            else:
+                print(f"[{format_now()}] 虾推啥推送失败：{result.get('message', '未知错误')}")
+                return False
+        else:
+            print(f"[{format_now()}] 虾推啥推送失败，HTTP状态码: {response.status_code}")
+            return False
+            
+    except requests.exceptions.Timeout:
+        print(f"[{format_now()}] 虾推啥推送超时")
+        return False
+    except requests.exceptions.ConnectionError:
+        print(f"[{format_now()}] 虾推啥推送连接失败，请检查网络或服务器地址")
+        return False
+    except Exception as e:
+        print(f"[{format_now()}] 虾推啥推送异常: {str(e)}")
+        return False
 
 class MiMotionRunner:
     def __init__(self, _user, _passwd):
@@ -237,7 +288,22 @@ def execute():
                 success_count += 1
         summary = f"\n执行账号总数{total}，成功：{success_count}，失败：{total - success_count}"
         print(summary)
+        # 原有推送逻辑保留
         push_util.push_results(push_results, summary, push_config)
+        
+        # 新增：调用虾推啥推送
+        xts_token = config.get('XIATUISHE_TOKEN')  # 从配置中获取虾推啥Token
+        if xts_token:
+            # 构建推送内容
+            push_title = "Mimotion步数更新结果"
+            push_content = f"{format_now()}\n{summary}\n"
+            for idx, res in enumerate(push_results):
+                push_content += f"\n[{idx+1}] 账号：{desensitize_user_name(res['user'])}\n结果：{'成功' if res['success'] else '失败'}\n详情：{res['msg'][:100]}..."
+            # 执行推送
+            push_to_xiatuishe(push_title, push_content, token=xts_token)
+        else:
+            print("虾推啥Token未配置，跳过虾推啥推送")
+            
     else:
         print(f"账号数长度[{len(user_list)}]和密码数长度[{len(passwd_list)}]不匹配，跳过执行")
         exit(1)
