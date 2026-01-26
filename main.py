@@ -82,14 +82,14 @@ def get_error_code(location):
         return None
     return result[0]
 
-# 新增：虾推啥推送函数
-def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None):
+# 修正：虾推啥微信推送函数（官方协议）
+def push_to_xiatuishe(title, content, server="https://wx.xtuis.cn", token=None):
     """
-    虾推啥（Bark协议）推送函数
-    :param title: 推送标题
-    :param content: 推送内容
-    :param server: 虾推啥服务器地址
-    :param token: 虾推啥Token（必填）
+    虾推啥微信推送函数（官方协议）
+    :param title: 推送标题（必填）
+    :param content: 推送内容（选填）
+    :param server: 虾推啥服务器地址（官方默认：https://wx.xtuis.cn）
+    :param token: 虾推啥Token（必填，从虾推啥公众号获取）
     :return: 推送成功返回True，失败返回False
     """
     # 校验Token
@@ -98,39 +98,44 @@ def push_to_xiatuishe(title, content, server="https://bark.xtuis.cn", token=None
         return False
     
     try:
-        # 处理内容中的特殊字符，避免URL解析错误
-        title_encoded = requests.utils.quote(title)
-        content_encoded = requests.utils.quote(content)
-        url = f"{server}/{token}/{title_encoded}/{content_encoded}"
+        # 官方标准接口格式：https://wx.xtuis.cn/[Token].send
+        url = f"{server}/{token}.send"
+        # 官方标准参数：text（标题）、desp（内容）
+        params = {
+            "text": title,
+            "desp": content
+        }
         
-        # 发送GET请求
+        # 发送GET请求（官方推荐，内容过长可改用POST）
         response = requests.get(
             url,
+            params=params,
             timeout=10,
             headers={"User-Agent": "Mimotion/1.0"}
         )
         
         # 检查响应状态
         if response.status_code == 200:
-            result = response.json()
-            if result.get("code") == 200:
-                print(f"[{format_now()}] 虾推啥推送成功")
+            result = response.text.strip()
+            # 官方返回成功标识：success/ok/成功
+            if "success" in result or "ok" in result.lower() or "成功" in result:
+                print(f"[{format_now()}] 虾推啥微信推送成功")
                 return True
             else:
-                print(f"[{format_now()}] 虾推啥推送失败：{result.get('message', '未知错误')}")
+                print(f"[{format_now()}] 虾推啥微信推送失败：{result}")
                 return False
         else:
-            print(f"[{format_now()}] 虾推啥推送失败，HTTP状态码: {response.status_code}")
+            print(f"[{format_now()}] 虾推啥微信推送失败，HTTP状态码: {response.status_code}")
             return False
             
     except requests.exceptions.Timeout:
-        print(f"[{format_now()}] 虾推啥推送超时")
+        print(f"[{format_now()}] 虾推啥微信推送超时")
         return False
     except requests.exceptions.ConnectionError:
-        print(f"[{format_now()}] 虾推啥推送连接失败，请检查网络或服务器地址")
+        print(f"[{format_now()}] 虾推啥微信推送连接失败，请检查网络或服务器地址")
         return False
     except Exception as e:
-        print(f"[{format_now()}] 虾推啥推送异常: {str(e)}")
+        print(f"[{format_now()}] 虾推啥微信推送异常: {str(e)}")
         return False
 
 class MiMotionRunner:
@@ -294,12 +299,12 @@ def execute():
         # 新增：调用虾推啥推送
         xts_token = config.get('XIATUISHE_TOKEN')  # 从配置中获取虾推啥Token
         if xts_token:
-            # 构建推送内容
+            # 构建推送内容（适配微信展示格式）
             push_title = "Mimotion步数更新结果"
             push_content = f"{format_now()}\n{summary}\n"
             for idx, res in enumerate(push_results):
                 push_content += f"\n[{idx+1}] 账号：{desensitize_user_name(res['user'])}\n结果：{'成功' if res['success'] else '失败'}\n详情：{res['msg'][:100]}..."
-            # 执行推送
+            # 执行推送（使用修正后的官方协议）
             push_to_xiatuishe(push_title, push_content, token=xts_token)
         else:
             print("虾推啥Token未配置，跳过虾推啥推送")
