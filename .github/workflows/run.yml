@@ -40,6 +40,6 @@ jobs:
           git commit -m "persist tokens trigger by ${{ github.event_name }}"
           git push origin master
 
-      - name: 强制发送邮件通知【成功/失败都触发】
-        if: always()
-        run: echo "执行完成，结果已发送邮件至你的GitHub主邮箱"
+      - name: 仅失败时发送邮件通知
+        if: failure()  # 关键修改：仅当流程失败时执行
+        run: echo "执行失败，结果已发送邮件至你的GitHub主邮箱"
